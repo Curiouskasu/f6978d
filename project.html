@@ -41,11 +41,29 @@
         position:fixed;inset:0;display:grid;place-items:center;color:#111;font-family:Arial,Helvetica,sans-serif;
         pointer-events:none
       }
+      
+      /* Hover label */
+      #hover-label{
+        position: fixed;
+        pointer-events: none;
+        font-family: 'Darker Grotesque', Arial, sans-serif;
+        font-size: 16px;
+        color: #f6978d;
+        z-index: 10001;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        transform: translateX(-50%);
+      }
+      #hover-label.visible{
+        opacity: 1;
+      }
     </style>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="custom-cursor" aria-hidden="true"></div>
+    <div id="hover-label"></div>
 
     <svg id="cutleryOverlay" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:auto;z-index:10002;">
       <defs>
@@ -67,12 +85,13 @@
       (function(){
         const body = document.body;
         const cursor = document.getElementById('custom-cursor');
+        const hoverLabel = document.getElementById('hover-label');
 
         body.style.margin = '0';
         body.style.backgroundRepeat = 'repeat';
         body.style.backgroundPosition = '0 0';
 
-        let cursorSize = 120;
+        let cursorSize = 360;
         const minSize = 20, maxSize = 480;
         Object.assign(cursor.style, {
           position: 'fixed',
@@ -91,6 +110,8 @@
         document.body.style.setProperty('cursor', 'none', 'important');
 
         let pointer = { x: null, y: null, inside: false };
+        let currentHoveredUtensil = null;
+
         window.addEventListener('pointermove', (e)=>{
           pointer.x = e.clientX;
           pointer.y = e.clientY;
@@ -98,13 +119,17 @@
           cursor.style.left = e.clientX + 'px';
           cursor.style.top = e.clientY + 'px';
           updateCutleryMask(e.clientX, e.clientY, cursorSize);
+          
+          // Check hover state
+          checkHover(e.clientX, e.clientY);
         }, {passive:true});
         
         window.addEventListener('pointerleave', ()=>{ 
           pointer.x = null; 
           pointer.y = null; 
           pointer.inside = false; 
-          updateCutleryMask(-9999, -9999, cursorSize); 
+          updateCutleryMask(-9999, -9999, cursorSize);
+          hideLabel();
         });
 
         let posX = 0, posY = 0;
@@ -131,18 +156,71 @@
         const cutleryPat = document.getElementById('cutleryPat');
         const cutleryMaskCircle = document.getElementById('cutleryMaskCircle');
 
-        // Map of utensil positions - coordinates are percentages (0-100) of tile dimensions
+        // Map of utensil positions with labels
         const utensilMap = [
-          { name: 'S1', file: 'Assets/Models/S1_Model.obj', x: 36.86, y: 47.99, radius: 20 },
-          { name: 'S2', file: 'Assets/Models/S2_Model.obj', x: 72.19, y: 15.95, radius: 20 },
-          { name: 'S3', file: 'Assets/Models/S3_Model.obj', x: 60.07, y: 72.87, radius: 20 },
-          { name: 'F1', file: 'Assets/Models/F1_Model.obj', x: 93.12, y: 57.09, radius: 22 },
-          { name: 'F2', file: 'Assets/Models/F2_Model.obj', x: 19.34, y: 76.19, radius: 22 },
-          { name: 'F3', file: 'Assets/Models/F3_Model.obj', x: 88.94, y: 91.06, radius: 22 },
-          { name: 'K1', file: 'Assets/Models/K1_Model.obj', x: 92.52, y: 45.86, radius: 20 },
-          { name: 'K2', file: 'Assets/Models/K2_Model.obj', x: 29.95, y: 28.83, radius: 20 },
-          { name: 'K3', file: 'Assets/Models/K3_Model.obj', x: 74.07, y: 36.40, radius: 20 }
+          { name: 'S1', label: 'Spoon', file: 'Assets/Models/S1_Model.obj', x: 36.86, y: 47.99, radius: 20 },
+          { name: 'S2', label: 'Dessert Spoon', file: 'Assets/Models/S2_Model.obj', x: 72.19, y: 15.95, radius: 20 },
+          { name: 'S3', label: 'Soup Spoon', file: 'Assets/Models/S3_Model.obj', x: 60.07, y: 72.87, radius: 20 },
+          { name: 'F1', label: 'Fork', file: 'Assets/Models/F1_Model.obj', x: 93.12, y: 57.09, radius: 22 },
+          { name: 'F2', label: 'Fish Fork', file: 'Assets/Models/F2_Model.obj', x: 19.34, y: 76.19, radius: 22 },
+          { name: 'F3', label: 'Cheese Fork', file: 'Assets/Models/F3_Model.obj', x: 88.94, y: 91.06, radius: 22 },
+          { name: 'K1', label: 'Knife', file: 'Assets/Models/K1_Model.obj', x: 92.52, y: 45.86, radius: 20 },
+          { name: 'K2', label: 'Butter Knife', file: 'Assets/Models/K2_Model.obj', x: 29.95, y: 28.83, radius: 20 },
+          { name: 'K3', label: 'Cheese Knife', file: 'Assets/Models/K3_Model.obj', x: 74.07, y: 36.40, radius: 20 }
         ];
+
+        function checkHover(clientX, clientY) {
+          const rect = document.getElementById('clickableArea').getBoundingClientRect();
+          const clickX = clientX - rect.left;
+          const clickY = clientY - rect.top;
+
+          const tileX = ((clickX - posX) % tileW + tileW) % tileW;
+          const tileY = ((clickY - posY) % tileH + tileH) % tileH;
+
+          const tileXPercent = (tileX / tileW) * 100;
+          const tileYPercent = (tileY / tileH) * 100;
+
+          let foundUtensil = null;
+
+          for (const utensil of utensilMap) {
+            const dx = tileXPercent - utensil.x;
+            const dy = tileYPercent - utensil.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= utensil.radius) {
+              foundUtensil = utensil;
+              break;
+            }
+          }
+
+          if (foundUtensil && foundUtensil !== currentHoveredUtensil) {
+            currentHoveredUtensil = foundUtensil;
+            showLabel(foundUtensil.label, clientX, clientY);
+          } else if (!foundUtensil && currentHoveredUtensil) {
+            currentHoveredUtensil = null;
+            hideLabel();
+          } else if (foundUtensil && foundUtensil === currentHoveredUtensil) {
+            // Update label position
+            updateLabelPosition(clientX, clientY);
+          }
+        }
+
+        function showLabel(text, x, y) {
+          hoverLabel.textContent = text;
+          hoverLabel.classList.add('visible');
+          updateLabelPosition(x, y);
+        }
+
+        function updateLabelPosition(x, y) {
+          // Position below the cursor (at the bottom-most point)
+          const labelY = y + (cursorSize / 2) + 16; // 16px gap below cursor
+          hoverLabel.style.left = x + 'px';
+          hoverLabel.style.top = labelY + 'px';
+        }
+
+        function hideLabel() {
+          hoverLabel.classList.remove('visible');
+        }
 
         const clickableArea = document.getElementById('clickableArea');
         if (clickableArea) {
@@ -151,11 +229,9 @@
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
-            // Calculate position within the tile (accounting for pan offset)
             const tileX = ((clickX - posX) % tileW + tileW) % tileW;
             const tileY = ((clickY - posY) % tileH + tileH) % tileH;
 
-            // Convert to percentage (0-100 scale)
             const tileXPercent = (tileX / tileW) * 100;
             const tileYPercent = (tileY / tileH) * 100;
 
@@ -166,7 +242,6 @@
             console.log(`Pan offset: (${posX.toFixed(1)}, ${posY.toFixed(1)})`);
             console.log(`Tile size: ${tileW}x${tileH}`);
 
-            // Check if click is near any utensil
             for (const utensil of utensilMap) {
               const dx = tileXPercent - utensil.x;
               const dy = tileYPercent - utensil.y;
@@ -198,7 +273,7 @@
                   }
 
                   try {
-                    statusEl.textContent = `Fetching ${utensil.name}...`;
+                    statusEl.textContent = `Fetching ${utensil.label}...`;
                     console.log(`Fetching: ${utensil.file}`);
                     
                     const res = await fetch(utensil.file, { cache: 'no-store' });
@@ -220,7 +295,7 @@
                     a.click();
                     document.body.removeChild(a);
                     
-                    statusEl.textContent = `✓ Downloaded: ${filename}`;
+                    statusEl.textContent = `✓ Downloaded: ${utensil.label}`;
                     console.log(`✓ Download complete: ${filename}`);
                     
                     setTimeout(() => { 
@@ -232,7 +307,6 @@
                     statusEl.textContent = `✗ Failed: ${err.message}`;
                     statusEl.style.background = 'rgba(200,0,0,0.85)';
                     
-                    // Try opening in new tab as fallback
                     setTimeout(() => {
                       window.open(utensil.file, '_blank');
                     }, 1000);
@@ -294,10 +368,16 @@
           if(Math.abs(delta) < 0.5) return;
           e.preventDefault();
           const change = delta * 0.4;
+          const oldSize = cursorSize;
           cursorSize = Math.max(minSize, Math.min(maxSize, Math.round(cursorSize + change)));
           cursor.style.width = cursorSize + 'px';
           cursor.style.height = cursorSize + 'px';
           updateCutleryMask(pointer.x || window.innerWidth/2, pointer.y || window.innerHeight/2, cursorSize);
+          
+          // Update label position if visible
+          if (currentHoveredUtensil && pointer.x) {
+            updateLabelPosition(pointer.x, pointer.y);
+          }
         }, {passive:false});
       })();
     </script>
