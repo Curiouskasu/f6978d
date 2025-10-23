@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#f6978d Cutlery — Circles</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Use a variable font fallback; user can add "Darker Grotesque" locally or via @font-face -->
+  </head>
+  <body>
+    <main class="hero">
+      <div class="circle-wrap">
+        <!-- SVG used so text can follow a circle path -->
+        <svg id="rotorSvg" class="rotor" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <!-- circle path; small arc trick used to make a closed circle path -->
+            <path id="circlePath" d="M200,50 a150,150 0 1,1 -0.1,0" />
+          </defs>
+          <g>
+            <text id="circleText" class="circular-text" dy="-6">
+              <textPath id="circleTextPath" href="#circlePath" startOffset="0">#f6978d Circles on your Cutlery for your Circular Table for your Spherical Room</textPath>
+            </text>
+          </g>
+        </svg>
+
+        <a class="center-btn" role="button" aria-label="Click to buy" href="project.html">Click to Buy</a>
+      </div>
+    </main>
+      <script>
+        // Fit the text to the circle path by setting textLength equal to the path length
+        (function(){
+          const path = document.getElementById('circlePath');
+          const textPath = document.getElementById('circleTextPath');
+          const textEl = document.getElementById('circleText');
+
+          if(!path || !textPath || !textEl) return;
+
+          function fitTextToPath(){
+            // get path length
+            const length = path.getTotalLength();
+
+            // set textLength so the glyphs and spacing expand to exactly match the path
+            textPath.setAttribute('textLength', length);
+            textPath.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+
+            // optionally adjust font-size based on length to keep visual balance
+            // make font-size proportional to circle radius
+            const fontSize = Math.max(12, Math.min(22, Math.round(length / 20)));
+            textEl.style.fontSize = fontSize + 'px';
+          }
+
+          // run once, and on resize (debounced)
+          fitTextToPath();
+          let to;
+          window.addEventListener('resize', ()=>{ clearTimeout(to); to = setTimeout(fitTextToPath, 120); });
+        })();
+      </script>
+  </body>
+</html>

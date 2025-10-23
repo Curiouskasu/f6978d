@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#f6978d — Project</title>
+    <style>
+      @font-face{
+        font-family: 'Darker Grotesque';
+        src: url('Assets/DarkerGrotesque-VariableFont_wght.ttf') format('truetype');
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root{--tile: url('Assets/Circles tile.png')}
+      html,body{height:100%;margin:0}
+      body{
+        background-image: var(--tile);
+        background-repeat: repeat;
+        background-position: 0 0;
+        background-size: auto;
+        overflow:hidden;
+        cursor:grab;
+      }
+      /* bottom links */
+      .bottom-link{
+        position:fixed;
+        bottom:16px;
+        left:16px;
+        color:#f6978d;
+        text-decoration:none;
+        font-family:'Darker Grotesque', Arial, sans-serif;
+        font-size:16px;
+        background:transparent;
+        padding:6px 8px;
+      }
+      .bottom-link.right{ left:auto; right:16px }
+      .bottom-link:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(118,151,141,0.14) }
+      .content{
+        position:fixed;inset:0;display:grid;place-items:center;color:#111;font-family:Arial,Helvetica,sans-serif;
+        pointer-events:none
+      }
+      .panel{background:rgba(255,255,255,0.85);padding:0;border-radius:0px;pointer-events:auto}
+    </style>
+  </head>
+  <body>
+    <!-- Empty page with tiled background and a custom circular cursor -->
+    <div id="custom-cursor" aria-hidden="true"></div>
+
+      <!-- Cutlery SVG overlay (tiled). Masked so only the area inside the cursor circle is visible.
+           Positioned above the cursor so the tiled SVG appears on top of the cursor color. -->
+      <svg id="cutleryOverlay" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10002;">
+        <defs>
+          <pattern id="cutleryPat" patternUnits="userSpaceOnUse" width="100" height="100">
+            <image id="cutleryImage" href="Assets/Cutlery tiles.svg" x="0" y="0" width="100" height="100" preserveAspectRatio="xMinYMin slice" />
+          </pattern>
+
+          <!-- mask: white circle reveals overlay only inside the cursor -->
+          <mask id="cutleryMask">
+            <rect x="0" y="0" width="100%" height="100%" fill="black" />
+            <circle id="cutleryMaskCircle" cx="-9999" cy="-9999" r="30" fill="white" />
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#cutleryPat)" mask="url(#cutleryMask)"></rect>
+      </svg>
+
+  <a class="bottom-link" href="index.html">Home</a>
+  <a class="bottom-link right" href="coming-soon.html">More collections</a>
+
+    <script>
+      // Static tiled background, edge-triggered panning, and resizable circular cursor
+      (function(){
+        const body = document.body;
+        const cursor = document.getElementById('custom-cursor');
+
+        // remove default margins/padding and ensure seamless repeat
+        body.style.margin = '0';
+        body.style.backgroundRepeat = 'repeat';
+        body.style.backgroundPosition = '0 0';
+
+        // style the cursor element
+        let cursorSize = 60; // initial size in px
+        const minSize = 20, maxSize = 360;
+        Object.assign(cursor.style, {
+          position: 'fixed',
+          width: cursorSize + 'px',
+          height: cursorSize + 'px',
+          borderRadius: '50%',
+          pointerEvents: 'none',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 9999,
+          background: 'rgba(246,151,141,0.92)',
+          mixBlendMode: 'normal',
+          transition: 'width 0.12s ease, height 0.12s ease, transform 0.06s linear'
+        });
+        document.body.style.cursor = 'none';
+
+        // pointer tracking
+        let pointer = { x: null, y: null, inside: false };
+        window.addEventListener('pointermove', (e)=>{
+          pointer.x = e.clientX;
+          pointer.y = e.clientY;
+          pointer.inside = true;
+          cursor.style.left = e.clientX + 'px';
+          cursor.style.top = e.clientY + 'px';
+          // update SVG mask to reveal overlay inside cursor
+          updateCutleryMask(e.clientX, e.clientY, cursorSize);
+        }, {passive:true});
+        window.addEventListener('pointerleave', ()=>{ pointer.x = null; pointer.y = null; pointer.inside = false; updateCutleryMask(-9999, -9999, cursorSize); });
+
+        // Background pan state (pixels)
+        let posX = 0, posY = 0;
+
+        // Read the Circles tile PNG intrinsic size so we can match the SVG pattern
+        const circlesTile = new Image();
+        let tileW = 100, tileH = 100;
+        circlesTile.onload = function(){
+          tileW = circlesTile.naturalWidth || tileW;
+          tileH = circlesTile.naturalHeight || tileH;
+          const cutleryPat = document.getElementById('cutleryPat');
+          const cutleryImage = document.getElementById('cutleryImage');
+          if(cutleryPat){
+            cutleryPat.setAttribute('width', tileW);
+            cutleryPat.setAttribute('height', tileH);
+          }
+          if(cutleryImage){
+            cutleryImage.setAttribute('width', tileW);
+            cutleryImage.setAttribute('height', tileH);
+          }
+        };
+        circlesTile.src = 'Assets/Circles tile.png';
+
+        const cutleryPat = document.getElementById('cutleryPat');
+        const cutleryMaskCircle = document.getElementById('cutleryMaskCircle');
+
+        function syncCutleryPat(){
+          if(cutleryPat) cutleryPat.setAttribute('patternTransform', `translate(${posX} ${posY})`);
+        }
+
+        function updateCutleryMask(x, y, size){
+          if(!cutleryMaskCircle) return;
+          cutleryMaskCircle.setAttribute('cx', String(x));
+          cutleryMaskCircle.setAttribute('cy', String(y));
+          cutleryMaskCircle.setAttribute('r', String(size/2));
+        }
+
+        // Edge pan settings
+        const edgeThreshold = 48; // px from edge to start panning
+        const maxSpeed = 7.2; // px per frame at the edge
+
+        // RAF loop: pan background only when pointer is near an edge
+        function rafLoop(){
+          if(pointer.inside && pointer.x !== null){
+            const w = window.innerWidth, h = window.innerHeight;
+            let vx = 0, vy = 0;
+
+            if(pointer.x <= edgeThreshold) {
+              // closer to left edge => move background left
+              vx = maxSpeed * (1 - pointer.x / edgeThreshold);
+            } else if(pointer.x >= w - edgeThreshold){
+              vx = -maxSpeed * (1 - (w - pointer.x) / edgeThreshold);
+            }
+
+            if(pointer.y <= edgeThreshold){
+              vy = maxSpeed * (1 - pointer.y / edgeThreshold);
+            } else if(pointer.y >= h - edgeThreshold){
+              vy = -maxSpeed * (1 - (h - pointer.y) / edgeThreshold);
+            }
+
+            if(vx !== 0 || vy !== 0){
+              posX += vx;
+              posY += vy;
+              // apply background position (repeat makes it seamless)
+              body.style.backgroundPosition = `${posX}px ${posY}px`;
+              syncCutleryPat();
+            }
+          }
+
+          requestAnimationFrame(rafLoop);
+        }
+        requestAnimationFrame(rafLoop);
+
+        // Wheel / trackpad: resize the circular cursor
+        // Use wheel delta to change size; prevent default to avoid accidental scrolling
+        window.addEventListener('wheel', (e)=>{
+          // prefer pinch/trackpad gestures; allow normal wheel too
+          // invert deltaY so wheel-up increases size
+          const delta = -e.deltaY;
+          if(Math.abs(delta) < 0.5) return; // ignore tiny deltas
+          e.preventDefault();
+          // sensitivity scaling
+          const change = delta * 0.4; // tune this factor if needed
+          cursorSize = Math.max(minSize, Math.min(maxSize, Math.round(cursorSize + change)));
+          cursor.style.width = cursorSize + 'px';
+          cursor.style.height = cursorSize + 'px';
+          // update mask radius at current pointer position (or center if none)
+          updateCutleryMask(pointer.x || window.innerWidth/2, pointer.y || window.innerHeight/2, cursorSize);
+        }, {passive:false});
+      })();
+    </script>
+  </body>
+</html>
