@@ -33,6 +33,20 @@
         .track img{height:40vh}
         .message{font-size:20px}
       }
+      /* bottom link (matches project.html style) */
+      .bottom-link{
+        position:fixed;
+        bottom:24px;
+        left:24px;
+        color:#f6978d;
+        text-decoration:none;
+        font-family:'Darker Grotesque', Arial, sans-serif;
+        font-size:24px;
+        background:transparent;
+        padding:8px 8px;
+        z-index:10003;
+      }
+      .bottom-link.right{ left:auto; right:16px }
     </style>
   </head>
   <body>
@@ -113,5 +127,6 @@
         document.querySelectorAll('.track').forEach(t => t.style.animationPlayState = 'running');
       });
     </script>
+    <a class="bottom-link right" href="project.html">Buy Now</a>
   </body>
 </html>
