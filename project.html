@@ -51,7 +51,7 @@
 
       <!-- Cutlery SVG overlay (tiled). Masked so only the area inside the cursor circle is visible.
            Positioned above the cursor so the tiled SVG appears on top of the cursor color. -->
-  <svg id="cutleryOverlay" ... style="position:fixed;inset:0;width:100%;height:100%;pointer-events:auto;z-index:10002;">
+  <svg id="cutleryOverlay" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:auto;z-index:10002;">
         <defs>
           <pattern id="cutleryPat" patternUnits="userSpaceOnUse" width="100" height="100">
             <image id="cutleryImage" href="Assets/Cutlery tiles.svg" x="0" y="0" width="100" height="100" preserveAspectRatio="xMinYMin slice" />
@@ -167,16 +167,21 @@
             const tileX = ((clickX - posX) % tileW + tileW) % tileW;
             const tileY = ((clickY - posY) % tileH + tileH) % tileH;
 
+            // DEBUG logs
+            console.log(`Click at screen: (${clickX}, ${clickY})`);
+            console.log(`Tile position: (${tileX.toFixed(2)}, ${tileY.toFixed(2)})`);
+
             // Check if click is near any utensil
             for (const utensil of utensilMap) {
               const dx = tileX - utensil.x;
               const dy = tileY - utensil.y;
               const distance = Math.sqrt(dx * dx + dy * dy);
 
+              console.log(`${utensil.name}: distance = ${distance.toFixed(2)} (threshold: ${utensil.radius})`);
+
               if (distance <= utensil.radius) {
                 // Trigger fetch + forced download via blob -> object URL
                 (async () => {
-                  // ensure a small on-page status element exists for debug messages
                   let statusEl = document.getElementById('downloadStatus');
                   if (!statusEl) {
                     statusEl = document.createElement('div');
@@ -187,7 +192,6 @@
 
                   try {
                     statusEl.textContent = `Fetching ${utensil.file}...`;
-                    console.log(`Fetching ${utensil.file}...`);
                     const res = await fetch(utensil.file, { cache: 'no-store' });
                     statusEl.textContent = `HTTP ${res.status} ${res.statusText}`;
                     if (!res.ok) throw new Error(`Network response was not ok (${res.status})`);
@@ -203,11 +207,9 @@
                     document.body.removeChild(a);
                     statusEl.textContent = `Download started: ${filename}`;
                     setTimeout(() => { URL.revokeObjectURL(url); statusEl.textContent = ''; }, 2000);
-                    console.log(`Forced download started for ${utensil.name}: ${utensil.file}`);
                   } catch (err) {
                     console.error('Download failed', err);
                     statusEl.textContent = `Download failed: ${err.message}`;
-                    // Fallback: open file in new tab so user can inspect network error
                     window.open(utensil.file, '_blank');
                   }
                 })();
@@ -215,6 +217,7 @@
               }
             }
 
+            // final debug log
             console.log(`Click at tile position: (${Math.round(tileX)}, ${Math.round(tileY)})`);
           }, {passive: true});
         }
