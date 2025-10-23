@@ -80,13 +80,13 @@
         body.style.backgroundPosition = '0 0';
 
         // style the cursor element
-        let cursorSize = 60; // initial size in px
-        const minSize = 20, maxSize = 360;
+        let cursorSize = 120; // initial size in px
+        const minSize = 20, maxSize = 1000;
         Object.assign(cursor.style, {
           position: 'fixed',
           width: cursorSize + 'px',
           height: cursorSize + 'px',
-          borderRadius: '50%',
+          borderRadius: '%',
           pointerEvents: 'none',
           transform: 'translate(-50%, -50%)',
           zIndex: 9999,
