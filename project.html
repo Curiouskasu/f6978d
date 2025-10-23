@@ -42,7 +42,15 @@
         pointer-events:none
       }
       .panel{background:rgba(255,255,255,0.85);padding:0;border-radius:0px;pointer-events:auto}
+  /* popup-scoped adjustments: center the button inside the popup circle */
+  #pop-up .center-btn{ width:120px; height:120px; margin:0; }
+  #pop-up .rotor{ width:220px; height:220px; }
+  /* ensure popup rotor text is centered and button is perfectly circular */
+  #popupInner .rotor { pointer-events: none; }
+  #popupCircleText { text-anchor: middle; dominant-baseline: central; }
+  #popupBuy { display:inline-grid; place-items:center; width:120px; height:120px; border-radius:9999px; background:#f6978d; color:#fff; text-decoration:none; font-family:'Darker Grotesque', Arial, sans-serif; }
     </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <!-- Empty page with tiled background and a custom circular cursor -->
@@ -67,6 +75,30 @@
 
   <a class="bottom-link" href="index.html">Home</a>
   <a class="bottom-link right" href="coming-soon.html">More collections</a>
+
+  <!-- Pop-up (centered) -->
+  <div id="pop-up" style="position:fixed;inset:0;display:grid;place-items:center;z-index:10010;"> 
+    <div id="popupCard" style="position:relative;width:360px;height:360px;border-radius:9999px;background:#fff;display:grid;place-items:center;">
+      <!-- close button removed; center button will close the popup -->
+
+      <!-- white circle under the button and rotor; use positioned container so we can absolutely center the button -->
+      <div id="popupInner" style="position:relative;width:260px;height:260px;border-radius:9999px;background:#fff;display:block;">
+        <!-- rotor svg and center button copied from index.html -->
+        <svg id="popupRotorSvg" class="rotor" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:220px;height:220px;position:absolute;inset:0;margin:auto;left:0;right:0;top:0;bottom:0;z-index:2;">
+          <defs>
+            <path id="popupCirclePath" d="M200,50 a150,150 0 1,1 -0.1,0" />
+          </defs>
+          <g>
+            <text id="popupCircleText" class="circular-text" dy="-6">
+              <textPath id="popupCircleTextPath" href="#popupCirclePath" startOffset="50%">#f6978d Circles on your Cutlery for your Circular Table for your Spherical Room</textPath>
+            </text>
+          </g>
+        </svg>
+
+        <a class="center-btn" id="popupBuy" role="button" aria-label="Click to buy" href="#" style="z-index:3;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">Click to Buy</a>
+      </div>
+    </div>
+  </div>
 
     <script>
       // Static tiled background, edge-triggered panning, and resizable circular cursor
@@ -277,6 +309,34 @@
           // update mask radius at current pointer position (or center if none)
           updateCutleryMask(pointer.x || window.innerWidth/2, pointer.y || window.innerHeight/2, cursorSize);
         }, {passive:false});
+
+        // Popup wiring: center button closes popup and fit text on popup rotor
+        (function(){
+          const popup = document.getElementById('pop-up');
+          const popupBuy = document.getElementById('popupBuy');
+          if(popupBuy && popup){
+            popupBuy.addEventListener('click', (e)=>{ e.preventDefault(); popup.remove(); });
+          }
+
+          // Fit popup rotor text to its path (same method as index.html)
+          const path = document.getElementById('popupCirclePath');
+          const textPath = document.getElementById('popupCircleTextPath');
+          const textEl = document.getElementById('popupCircleText');
+          if(path && textPath && textEl){
+            function fit(){
+              const length = path.getTotalLength();
+              textPath.setAttribute('textLength', length);
+              textPath.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+              const fontSize = Math.max(12, Math.min(22, Math.round(length / 20)));
+              textEl.style.fontSize = fontSize + 'px';
+              // ensure centered alignment
+              textPath.setAttribute('startOffset', '50%');
+              textEl.setAttribute('text-anchor', 'middle');
+            }
+            fit();
+            let tto; window.addEventListener('resize', ()=>{ clearTimeout(tto); tto = setTimeout(fit, 120); });
+          }
+        })();
 
         
       })();

@@ -1,7 +1,7 @@
 :root{
   --accent: #f6978d;
   --accent-dark: #f6878d; /* slight variation as requested */
-  --bg: #ffffff;
+  --bg: transparent;
 }
 
 @font-face{
@@ -17,7 +17,7 @@ html,body{height:100%}
 body{
   margin:0;
   font-family: 'Darker Grotesque', 'Helvetica Neue', Arial, sans-serif;
-  background: radial-gradient(circle at 10% 10%, #ffffff 0%, var(--bg) 50%);
+  /* do not set background here — project pages set their own background-image (tiles) */
   color:white;
 }
 
@@ -69,16 +69,15 @@ body{
   place-items:center;
   font-size: 15px;
   text-decoration: none; /* remove underline for anchor */
-  box-shadow:0 8px 30px rgba(246,151,141,0.25), inset 0 -6px 12px rgba(255,255,255,0.02);
-  transition:transform .18s ease, box-shadow .18s ease;
+  /* flat button: no shadows */
+  transition:transform .18s ease;
 }
 .center-btn:active{transform:translateY(2px) scale(.995)}
-.center-btn:hover{transform:translateY(-4px) scale(1.02); box-shadow:0 14px 40px rgba(246,151,141,0.28)}
+.center-btn:hover{transform:translateY(-4px) scale(1.02)}
 
 /* Accessible focus ring for keyboard users */
 .center-btn:focus-visible{
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(246,151,141,0.28), 0 14px 40px rgba(246,151,141,0.18);
+  outline: 3px solid rgba(246,151,141,0.28);
 }
 
 @keyframes spin{

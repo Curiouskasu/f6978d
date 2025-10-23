@@ -11,19 +11,107 @@
         font-weight: 100 900;
         font-display: swap;
       }
-      html,body{height:100%;margin:0;background:#0f0f10;color:#fff;font-family:'Darker Grotesque', Arial, sans-serif}
-      .wrap{height:100vh;display:grid;place-items:center}
-      .card{background:rgba(255,255,255,0.04);padding:28px;border-radius:12px;text-align:center}
-      a{color:#76978d;text-decoration:none}
+
+      html,body{height:100%;margin:0;background:#ffffff;color:#111;font-family:'Darker Grotesque', Arial, sans-serif}
+      .stage{position:relative;overflow:hidden;height:100vh;background:#ffffff}
+
+      /* Scroller container and duplicated track for seamless loop */
+      .scroller{position:absolute;inset:0;display:flex;align-items:center}
+      .track{display:flex;gap:24px;align-items:center;padding:24px 0}
+      .track img{height:60vh;max-height:640px;object-fit:cover;border-radius:8px}
+
+      /* animation: move left by track width over time */
+      .track-wrap{display:flex;align-items:center}
+      .track-wrap .track{animation:scroll-left linear infinite}
+
+      /* overlay mask and message */
+      .overlay{position:absolute;inset:0;background:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center}
+      .message{color:#f6978d;font-size:28px;font-weight:700;text-align:center;padding:24px}
+
+      /* small screens */
+      @media (max-width:600px){
+        .track img{height:40vh}
+        .message{font-size:20px}
+      }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <div class="card">
-        <h1>Coming soon</h1>
-        <p>More collections are on the way. Check back soon.</p>
-        <p><a href="project.html">← Back</a></p>
+    <div class="stage" id="stage">
+      <div class="scroller">
+        <div class="track-wrap" id="trackWrap">
+          <div class="track" id="trackA"></div>
+          <div class="track" id="trackB"></div>
+        </div>
+      </div>
+
+      <div class="overlay" aria-hidden="false">
+        <div class="message">visit us on October 30th for the new collection launch.</div>
       </div>
     </div>
+
+    <script>
+      // Image filenames found in Assets/Coming Soon
+      const images = [
+        'Assets/Coming Soon/render combining 2 lights.png',
+        'Assets/Coming Soon/Photo bowls.png',
+        'Assets/Coming Soon/Composite linework 2.png',
+        'Assets/Coming Soon/bowl and mug drawings-01.png',
+        'Assets/Coming Soon/Plate and bowl drawings.png',
+        'Assets/Coming Soon/Linework.png'
+      ];
+
+      const trackA = document.getElementById('trackA');
+      const trackB = document.getElementById('trackB');
+
+      // Helper to create img elements
+      function createImgs(container){
+        images.forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = '';
+          container.appendChild(img);
+        });
+      }
+
+      // populate both tracks (duplicate for seamless loop)
+      createImgs(trackA);
+      createImgs(trackB);
+
+      // after images load, compute width and set animation duration
+      function computeAndAnimate(){
+        // total width of one track
+        const trackWidth = trackA.scrollWidth;
+        // set both tracks to same width
+        trackB.style.width = trackWidth + 'px';
+        trackA.style.width = trackWidth + 'px';
+
+        // duration: adjust speed here (px per second)
+        const speed = 120; // px per second
+        const duration = Math.max(8, trackWidth / speed);
+
+        // apply animation via style to avoid generating keyframes dynamically
+        const keyframes = `@keyframes scroll-left{from{transform:translateX(0)}to{transform:translateX(-${trackWidth}px)}}`;
+        const style = document.createElement('style');
+        style.textContent = keyframes + `.track{animation-duration:${duration}s}`;
+        document.head.appendChild(style);
+      }
+
+      // Wait for images to load then compute
+      let loaded = 0;
+      const allImgs = document.querySelectorAll('.track img');
+      allImgs.forEach(img => {
+        if (img.complete) loaded++;
+        else img.addEventListener('load', () => { loaded++; if (loaded === allImgs.length) computeAndAnimate(); });
+      });
+      if (loaded === allImgs.length) computeAndAnimate();
+
+      // Make the tracks pause on hover (optional)
+      document.getElementById('stage').addEventListener('mouseenter', () => {
+        document.querySelectorAll('.track').forEach(t => t.style.animationPlayState = 'paused');
+      });
+      document.getElementById('stage').addEventListener('mouseleave', () => {
+        document.querySelectorAll('.track').forEach(t => t.style.animationPlayState = 'running');
+      });
+    </script>
   </body>
 </html>
