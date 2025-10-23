@@ -20,12 +20,15 @@
       .track{display:flex;gap:24px;align-items:center;padding:24px 0}
       .track img{height:60vh;max-height:640px;object-fit:cover;border-radius:8px}
 
-      /* animation: move left by track width over time */
-      .track-wrap{display:flex;align-items:center}
-      .track-wrap .track{animation:scroll-left linear infinite}
+      /* Track wrapper for animation */
+      .track-wrap{
+        display:flex;
+        align-items:center;
+        animation: scroll-left linear infinite;
+      }
 
       /* overlay mask and message */
-      .overlay{position:absolute;inset:0;background:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center}
+      .overlay{position:absolute;inset:0;background:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;pointer-events:none}
       .message{color:#f6978d;font-size:28px;font-weight:700;text-align:center;padding:24px}
 
       /* small screens */
@@ -66,7 +69,6 @@
     <script>
       // Image filenames found in Assets/Coming Soon
       const images = [
-        'Assets/Coming Soon/render combining 2 lights.png',
         'Assets/Coming Soon/Photo bowls.png',
         'Assets/Coming Soon/Composite linework 2.png',
         'Assets/Coming Soon/bowl and mug drawings-01.png',
@@ -76,6 +78,7 @@
 
       const trackA = document.getElementById('trackA');
       const trackB = document.getElementById('trackB');
+      const trackWrap = document.getElementById('trackWrap');
 
       // Helper to create img elements
       function createImgs(container){
@@ -93,40 +96,49 @@
 
       // after images load, compute width and set animation duration
       function computeAndAnimate(){
-        // total width of one track
+        // total width of one track (including gap)
         const trackWidth = trackA.scrollWidth;
-        // set both tracks to same width
-        trackB.style.width = trackWidth + 'px';
-        trackA.style.width = trackWidth + 'px';
 
         // duration: adjust speed here (px per second)
-        const speed = 120; // px per second
-        const duration = Math.max(8, trackWidth / speed);
+        const speed = 80; // px per second - adjust this to change scroll speed
+        const duration = Math.max(10, trackWidth / speed);
 
-        // apply animation via style to avoid generating keyframes dynamically
-        const keyframes = `@keyframes scroll-left{from{transform:translateX(0)}to{transform:translateX(-${trackWidth}px)}}`;
+        // Create keyframe animation dynamically based on track width
+        const keyframes = `@keyframes scroll-left{
+          from{transform:translateX(0)}
+          to{transform:translateX(-${trackWidth}px)}
+        }`;
+        
         const style = document.createElement('style');
-        style.textContent = keyframes + `.track{animation-duration:${duration}s}`;
+        style.textContent = keyframes + `.track-wrap{animation-duration:${duration}s}`;
         document.head.appendChild(style);
+
+        console.log(`Animation set: track width = ${trackWidth}px, duration = ${duration}s`);
       }
 
       // Wait for images to load then compute
       let loaded = 0;
       const allImgs = document.querySelectorAll('.track img');
-      allImgs.forEach(img => {
-        if (img.complete) loaded++;
-        else img.addEventListener('load', () => { loaded++; if (loaded === allImgs.length) computeAndAnimate(); });
-      });
-      if (loaded === allImgs.length) computeAndAnimate();
+      
+      function checkAllLoaded(){
+        loaded++;
+        if (loaded === allImgs.length) {
+          // Small delay to ensure layout is complete
+          setTimeout(computeAndAnimate, 100);
+        }
+      }
 
-      // Make the tracks pause on hover (optional)
-      document.getElementById('stage').addEventListener('mouseenter', () => {
-        document.querySelectorAll('.track').forEach(t => t.style.animationPlayState = 'paused');
+      allImgs.forEach(img => {
+        if (img.complete) {
+          checkAllLoaded();
+        } else {
+          img.addEventListener('load', checkAllLoaded);
+          img.addEventListener('error', checkAllLoaded); // Handle errors too
+        }
       });
-      document.getElementById('stage').addEventListener('mouseleave', () => {
-        document.querySelectorAll('.track').forEach(t => t.style.animationPlayState = 'running');
-      });
+
+      // Removed the pause on hover functionality - animation now runs continuously
     </script>
-    <a class="bottom-link right" href="project.html">Buy Now</a>
+    <a class="bottom-link right" href="project.html">Back to Store</a>
   </body>
 </html>
