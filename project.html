@@ -33,7 +33,7 @@
         font-size:24px;
         background:transparent;
         padding:8px 8px;
-        z-index:10003; /* ensure bottom links sit above the SVG overlay */
+        z-index:10003;
       }
       .bottom-link.right{ left:auto; right:16px }
       .bottom-link:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(118,151,141,0.14) }
@@ -41,49 +41,38 @@
         position:fixed;inset:0;display:grid;place-items:center;color:#111;font-family:Arial,Helvetica,sans-serif;
         pointer-events:none
       }
- 
     </style>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Empty page with tiled background and a custom circular cursor -->
     <div id="custom-cursor" aria-hidden="true"></div>
 
-      <!-- Cutlery SVG overlay (tiled). Masked so only the area inside the cursor circle is visible.
-           Positioned above the cursor so the tiled SVG appears on top of the cursor color. -->
-  <svg id="cutleryOverlay" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:auto;z-index:10002;">
-        <defs>
-          <pattern id="cutleryPat" patternUnits="userSpaceOnUse" width="100" height="100">
-            <image id="cutleryImage" href="Assets/Cutlery tiles.svg" x="0" y="0" width="100" height="100" preserveAspectRatio="xMinYMin slice" />
-          </pattern>
+    <svg id="cutleryOverlay" xmlns="http://www.w3.org/2000/svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:auto;z-index:10002;">
+      <defs>
+        <pattern id="cutleryPat" patternUnits="userSpaceOnUse" width="100" height="100">
+          <image id="cutleryImage" href="Assets/Cutlery tiles.svg" x="0" y="0" width="100" height="100" preserveAspectRatio="xMinYMin slice" />
+        </pattern>
 
-          <!-- mask: white circle reveals overlay only inside the cursor -->
-          <mask id="cutleryMask">
-            <rect x="0" y="0" width="100%" height="100%" fill="black" />
-            <circle id="cutleryMaskCircle" cx="-9999" cy="-9999" r="30" fill="white" />
-          </mask>
-        </defs>
-          <rect id="clickableArea" width="100%" height="100%" fill="url(#cutleryPat)" mask="url(#cutleryMask)" style="pointer-events:auto"></rect>
-      </svg>
+        <mask id="cutleryMask">
+          <rect x="0" y="0" width="100%" height="100%" fill="black" />
+          <circle id="cutleryMaskCircle" cx="-9999" cy="-9999" r="30" fill="white" />
+        </mask>
+      </defs>
+      <rect id="clickableArea" width="100%" height="100%" fill="url(#cutleryPat)" mask="url(#cutleryMask)" style="pointer-events:auto"></rect>
+    </svg>
 
-
-  <a class="bottom-link right" href="coming-soon.html">More collections</a>
-
-
+    <a class="bottom-link right" href="coming-soon.html">More collections</a>
 
     <script>
-      // Static tiled background, edge-triggered panning, and resizable circular cursor
       (function(){
         const body = document.body;
         const cursor = document.getElementById('custom-cursor');
 
-        // remove default margins/padding and ensure seamless repeat
         body.style.margin = '0';
         body.style.backgroundRepeat = 'repeat';
         body.style.backgroundPosition = '0 0';
 
-        // style the cursor element
-        let cursorSize = 120; // initial size in px
+        let cursorSize = 120;
         const minSize = 20, maxSize = 480;
         Object.assign(cursor.style, {
           position: 'fixed',
@@ -96,13 +85,11 @@
           background: 'rgba(246,151,141,0.92)',
           mixBlendMode: 'normal',
           transition: 'width 0.12s ease, height 0.12s ease, transform 0.06s linear'
-                 
         });
-  // hide the native cursor with important priority on both html and body
-  document.documentElement.style.setProperty('cursor', 'none', 'important');
-  document.body.style.setProperty('cursor', 'none', 'important');
 
-        // pointer tracking
+        document.documentElement.style.setProperty('cursor', 'none', 'important');
+        document.body.style.setProperty('cursor', 'none', 'important');
+
         let pointer = { x: null, y: null, inside: false };
         window.addEventListener('pointermove', (e)=>{
           pointer.x = e.clientX;
@@ -110,20 +97,24 @@
           pointer.inside = true;
           cursor.style.left = e.clientX + 'px';
           cursor.style.top = e.clientY + 'px';
-          // update SVG mask to reveal overlay inside cursor
           updateCutleryMask(e.clientX, e.clientY, cursorSize);
         }, {passive:true});
-        window.addEventListener('pointerleave', ()=>{ pointer.x = null; pointer.y = null; pointer.inside = false; updateCutleryMask(-9999, -9999, cursorSize); });
+        
+        window.addEventListener('pointerleave', ()=>{ 
+          pointer.x = null; 
+          pointer.y = null; 
+          pointer.inside = false; 
+          updateCutleryMask(-9999, -9999, cursorSize); 
+        });
 
-        // Background pan state (pixels)
         let posX = 0, posY = 0;
 
-        // Read the Circles tile PNG intrinsic size so we can match the SVG pattern
         const circlesTile = new Image();
         let tileW = 100, tileH = 100;
         circlesTile.onload = function(){
           tileW = circlesTile.naturalWidth || tileW;
           tileH = circlesTile.naturalHeight || tileH;
+          console.log(`Tile dimensions loaded: ${tileW}x${tileH}`);
           const cutleryPat = document.getElementById('cutleryPat');
           const cutleryImage = document.getElementById('cutleryImage');
           if(cutleryPat){
@@ -140,22 +131,19 @@
         const cutleryPat = document.getElementById('cutleryPat');
         const cutleryMaskCircle = document.getElementById('cutleryMaskCircle');
 
-  // ============ DOWNLOAD LINK DETECTION ============
-        // Map of utensil positions to OBJ files (positions are in the tile's 100x100 coordinate space)
-        // Positions were derived from the source SVG viewBox (0..1412.09, 0..792.07) and normalized to 0..100.
+        // Map of utensil positions - coordinates are percentages (0-100) of tile dimensions
         const utensilMap = [
-          { name: 'S1', file: 'Assets/Models/S1_Model.obj', x: 36.86, y: 47.99, radius: 12 },
-          { name: 'S2', file: 'Assets/Models/S2_Model.obj', x: 72.19, y: 15.95, radius: 12 },
-          { name: 'S3', file: 'Assets/Models/S3_Model.obj', x: 60.07, y: 72.87, radius: 12 },
-          { name: 'F1', file: 'Assets/Models/F1_Model.obj', x: 93.12, y: 57.09, radius: 14 },
-          { name: 'F2', file: 'Assets/Models/F2_Model.obj', x: 19.34, y: 76.19, radius: 14 },
-          { name: 'F3', file: 'Assets/Models/F3_Model.obj', x: 88.94, y: 91.06, radius: 14 },
-          { name: 'K1', file: 'Assets/Models/K1_Model.obj', x: 92.52, y: 45.86, radius: 12 },
-          { name: 'K2', file: 'Assets/Models/K2_Model.obj', x: 29.95, y: 28.83, radius: 12 },
-          { name: 'K3', file: 'Assets/Models/K3_Model.obj', x: 74.07, y: 36.40, radius: 12 }
+          { name: 'S1', file: 'Assets/Models/S1_Model.obj', x: 36.86, y: 47.99, radius: 20 },
+          { name: 'S2', file: 'Assets/Models/S2_Model.obj', x: 72.19, y: 15.95, radius: 20 },
+          { name: 'S3', file: 'Assets/Models/S3_Model.obj', x: 60.07, y: 72.87, radius: 20 },
+          { name: 'F1', file: 'Assets/Models/F1_Model.obj', x: 93.12, y: 57.09, radius: 22 },
+          { name: 'F2', file: 'Assets/Models/F2_Model.obj', x: 19.34, y: 76.19, radius: 22 },
+          { name: 'F3', file: 'Assets/Models/F3_Model.obj', x: 88.94, y: 91.06, radius: 22 },
+          { name: 'K1', file: 'Assets/Models/K1_Model.obj', x: 92.52, y: 45.86, radius: 20 },
+          { name: 'K2', file: 'Assets/Models/K2_Model.obj', x: 29.95, y: 28.83, radius: 20 },
+          { name: 'K3', file: 'Assets/Models/K3_Model.obj', x: 74.07, y: 36.40, radius: 20 }
         ];
 
-        // Attach click detection to the visible rect so we can map clicks to tile-local coordinates
         const clickableArea = document.getElementById('clickableArea');
         if (clickableArea) {
           clickableArea.addEventListener('click', (e) => {
@@ -167,36 +155,62 @@
             const tileX = ((clickX - posX) % tileW + tileW) % tileW;
             const tileY = ((clickY - posY) % tileH + tileH) % tileH;
 
-            // DEBUG logs
-            console.log(`Click at screen: (${clickX}, ${clickY})`);
-            console.log(`Tile position: (${tileX.toFixed(2)}, ${tileY.toFixed(2)})`);
+            // Convert to percentage (0-100 scale)
+            const tileXPercent = (tileX / tileW) * 100;
+            const tileYPercent = (tileY / tileH) * 100;
+
+            console.log('=== CLICK DEBUG ===');
+            console.log(`Screen position: (${clickX.toFixed(1)}, ${clickY.toFixed(1)})`);
+            console.log(`Tile position: (${tileX.toFixed(1)}, ${tileY.toFixed(1)})`);
+            console.log(`Tile percentage: (${tileXPercent.toFixed(2)}%, ${tileYPercent.toFixed(2)}%)`);
+            console.log(`Pan offset: (${posX.toFixed(1)}, ${posY.toFixed(1)})`);
+            console.log(`Tile size: ${tileW}x${tileH}`);
 
             // Check if click is near any utensil
             for (const utensil of utensilMap) {
-              const dx = tileX - utensil.x;
-              const dy = tileY - utensil.y;
+              const dx = tileXPercent - utensil.x;
+              const dy = tileYPercent - utensil.y;
               const distance = Math.sqrt(dx * dx + dy * dy);
 
-              console.log(`${utensil.name}: distance = ${distance.toFixed(2)} (threshold: ${utensil.radius})`);
+              console.log(`${utensil.name} at (${utensil.x.toFixed(2)}%, ${utensil.y.toFixed(2)}%): distance = ${distance.toFixed(2)} (threshold: ${utensil.radius})`);
 
               if (distance <= utensil.radius) {
-                // Trigger fetch + forced download via blob -> object URL
+                console.log(`✓ HIT! Downloading ${utensil.name}`);
+                
                 (async () => {
                   let statusEl = document.getElementById('downloadStatus');
                   if (!statusEl) {
                     statusEl = document.createElement('div');
                     statusEl.id = 'downloadStatus';
-                    Object.assign(statusEl.style, {position: 'fixed', right: '16px', top: '16px', padding: '8px 12px', background: 'rgba(0,0,0,0.7)', color:'#fff', fontSize:'12px', borderRadius:'6px', zIndex:100000});
+                    Object.assign(statusEl.style, {
+                      position: 'fixed', 
+                      right: '16px', 
+                      top: '16px', 
+                      padding: '8px 12px', 
+                      background: 'rgba(0,0,0,0.85)', 
+                      color:'#fff', 
+                      fontSize:'14px', 
+                      borderRadius:'6px', 
+                      zIndex: 100000,
+                      fontFamily: 'Arial, sans-serif'
+                    });
                     document.body.appendChild(statusEl);
                   }
 
                   try {
-                    statusEl.textContent = `Fetching ${utensil.file}...`;
+                    statusEl.textContent = `Fetching ${utensil.name}...`;
+                    console.log(`Fetching: ${utensil.file}`);
+                    
                     const res = await fetch(utensil.file, { cache: 'no-store' });
                     statusEl.textContent = `HTTP ${res.status} ${res.statusText}`;
-                    if (!res.ok) throw new Error(`Network response was not ok (${res.status})`);
+                    
+                    if (!res.ok) {
+                      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                    }
+                    
                     const blob = await res.blob();
                     statusEl.textContent = `Preparing download...`;
+                    
                     const url = URL.createObjectURL(blob);
                     const filename = utensil.file.split('/').pop();
                     const a = document.createElement('a');
@@ -205,21 +219,31 @@
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    statusEl.textContent = `Download started: ${filename}`;
-                    setTimeout(() => { URL.revokeObjectURL(url); statusEl.textContent = ''; }, 2000);
+                    
+                    statusEl.textContent = `✓ Downloaded: ${filename}`;
+                    console.log(`✓ Download complete: ${filename}`);
+                    
+                    setTimeout(() => { 
+                      URL.revokeObjectURL(url); 
+                      statusEl.textContent = ''; 
+                    }, 3000);
                   } catch (err) {
-                    console.error('Download failed', err);
-                    statusEl.textContent = `Download failed: ${err.message}`;
-                    window.open(utensil.file, '_blank');
+                    console.error('Download failed:', err);
+                    statusEl.textContent = `✗ Failed: ${err.message}`;
+                    statusEl.style.background = 'rgba(200,0,0,0.85)';
+                    
+                    // Try opening in new tab as fallback
+                    setTimeout(() => {
+                      window.open(utensil.file, '_blank');
+                    }, 1000);
                   }
                 })();
                 return;
               }
             }
 
-            // final debug log
-            console.log(`Click at tile position: (${Math.round(tileX)}, ${Math.round(tileY)})`);
-          }, {passive: true});
+            console.log('No utensil clicked');
+          });
         }
 
         function syncCutleryPat(){
@@ -233,18 +257,15 @@
           cutleryMaskCircle.setAttribute('r', String(size/2));
         }
 
-        // Edge pan settings
-        const edgeThreshold = 48; // px from edge to start panning
-        const maxSpeed = 7.2; // px per frame at the edge
+        const edgeThreshold = 48;
+        const maxSpeed = 7.2;
 
-        // RAF loop: pan background only when pointer is near an edge
         function rafLoop(){
           if(pointer.inside && pointer.x !== null){
             const w = window.innerWidth, h = window.innerHeight;
             let vx = 0, vy = 0;
 
             if(pointer.x <= edgeThreshold) {
-              // closer to left edge => move background left
               vx = maxSpeed * (1 - pointer.x / edgeThreshold);
             } else if(pointer.x >= w - edgeThreshold){
               vx = -maxSpeed * (1 - (w - pointer.x) / edgeThreshold);
@@ -259,7 +280,6 @@
             if(vx !== 0 || vy !== 0){
               posX += vx;
               posY += vy;
-              // apply background position (repeat makes it seamless)
               body.style.backgroundPosition = `${posX}px ${posY}px`;
               syncCutleryPat();
             }
@@ -269,52 +289,16 @@
         }
         requestAnimationFrame(rafLoop);
 
-        // Wheel / trackpad: resize the circular cursor
-        // Use wheel delta to change size; prevent default to avoid accidental scrolling
         window.addEventListener('wheel', (e)=>{
-          // prefer pinch/trackpad gestures; allow normal wheel too
-          // invert deltaY so wheel-up increases size
           const delta = -e.deltaY;
-          if(Math.abs(delta) < 0.5) return; // ignore tiny deltas
+          if(Math.abs(delta) < 0.5) return;
           e.preventDefault();
-          // sensitivity scaling
-          const change = delta * 0.4; // tune this factor if needed
+          const change = delta * 0.4;
           cursorSize = Math.max(minSize, Math.min(maxSize, Math.round(cursorSize + change)));
           cursor.style.width = cursorSize + 'px';
           cursor.style.height = cursorSize + 'px';
-          // update mask radius at current pointer position (or center if none)
           updateCutleryMask(pointer.x || window.innerWidth/2, pointer.y || window.innerHeight/2, cursorSize);
         }, {passive:false});
-
-        // Popup wiring: center button closes popup and fit text on popup rotor
-        (function(){
-          const popup = document.getElementById('pop-up');
-          const popupBuy = document.getElementById('popupBuy');
-          if(popupBuy && popup){
-            popupBuy.addEventListener('click', (e)=>{ e.preventDefault(); popup.remove(); });
-          }
-
-          // Fit popup rotor text to its path (same method as index.html)
-          const path = document.getElementById('popupCirclePath');
-          const textPath = document.getElementById('popupCircleTextPath');
-          const textEl = document.getElementById('popupCircleText');
-          if(path && textPath && textEl){
-            function fit(){
-              const length = path.getTotalLength();
-              textPath.setAttribute('textLength', length);
-              textPath.setAttribute('lengthAdjust', 'spacingAndGlyphs');
-              const fontSize = Math.max(12, Math.min(22, Math.round(length / 20)));
-              textEl.style.fontSize = fontSize + 'px';
-              // ensure centered alignment
-              textPath.setAttribute('startOffset', '50%');
-              textEl.setAttribute('text-anchor', 'middle');
-            }
-            fit();
-            let tto; window.addEventListener('resize', ()=>{ clearTimeout(tto); tto = setTimeout(fit, 120); });
-          }
-        })();
-
-        
       })();
     </script>
   </body>
